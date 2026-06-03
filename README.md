@@ -16,3 +16,33 @@
 **FT4** and **FT8** use T/R cycles of only 7.5 and 15 s, respectively. They have become extremely popular for world-wide DXing on the HF bands. **MSK144** is designed for Meteor Scatter on the VHF bands. **Q65** offers submodes with T/R sequence lengths from 15 seconds to 5 minutes, and a wide range of tone spacings. Particular Q65 submodes are highly recommended for EME, ionospheric scatter, and other weak signal work on VHF, UHF, and microwave bands. These modes include message formats explicitly supporting nonstandard callsigns and some popular radio contests.
 
 **FST4** and **FST4W** are designed particularly for the LF and MF bands. On these bands their fundamental sensitivities are better than other *WSJT-X* modes with the same sequence lengths, approaching the theoretical limits for their rates of information throughput. **FST4** is optimized for two-way QSOs, while **FST4W** is for quasi-beacon transmissions of **WSPR**-style messages. **FST4** and **FST4W** do not require the strict, independent time synchronization and phase locking of modes like EbNaut.
+# WSJT-X Qt6 Fork
+
+This project is a beta fork of WSJT-X that has been ported from Qt5 to Qt6 as the foundation for future modernization work. The Qt6 migration is the first major step toward a more modern look and feel in later releases, while keeping the application stable and usable in its current form.
+
+In addition to the framework migration, this fork includes rig-control integration and stability work to support reliable day-to-day testing and ongoing development. The current state of the project should be considered beta software: functional and usable, but still under active refinement as more testing and UI improvements are completed.
+
+## Current Focus
+
+- Porting the application from Qt5 to Qt6
+- Preserving core WSJT-X functionality during the transition
+- Improving rig-control integration and runtime stability
+- Preparing the codebase for future UI modernization
+- Publishing development progress openly on GitHub
+
+## Status
+
+This repository is an early beta release. It is intended for testing, development, and feedback rather than as a final polished release. Some features, behaviors, or interface details may still change as the Qt6 transition continues.
+
+## Goals
+
+The goals of this fork are to:
+
+- modernize the WSJT-X codebase by moving to Qt6
+- provide a stable base for future interface improvements
+- continue refining rig-control compatibility
+- support further testing and iterative public development
+
+## Notes
+
+This project is based on WSJT-X and remains a work in progress. If you use this beta build, expect ongoing changes as development continues.
