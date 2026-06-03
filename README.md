@@ -1,3 +1,5 @@
+A Beta Qt6 port of WSJT-X, laying the groundwork for a more modern UI. Unofficial and not part of the official WSJT-X release stream.
+
 # Weak Signal Communication Software
 
 ## Programs
