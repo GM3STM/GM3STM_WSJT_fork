@@ -1,4 +1,4 @@
-A Beta Qt6 port of WSJT-X, laying the groundwork for a more modern UI. Unofficial and not part of the official WSJT-X release stream.
+A Beta Qt6 port of WSJT-X, laying the groundwork for a more modern UI. Unofficial and not part of the official WSJT-X release stream.  USE AT OWN RISK
 
 # Weak Signal Communication Software
 
