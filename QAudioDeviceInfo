@@ -1,0 +1,116 @@
+#pragma once
+
+#include <QtCore/qmetatype.h>
+#include <QtCore/qstringlist.h>
+#include <QtCore/qlist.h>
+#include <QtMultimedia/qaudio.h>
+#include <QtMultimedia/qaudioformat.h>
+#include <QtMultimedia/qaudiodevice.h>
+#include <QtMultimedia/qmediadevices.h>
+
+QT_BEGIN_NAMESPACE
+
+namespace QAudio
+{
+enum Mode
+{
+  AudioOutput,
+  AudioInput
+};
+}
+
+class QAudioDeviceInfo
+{
+public:
+  QAudioDeviceInfo () = default;
+  explicit QAudioDeviceInfo (QAudioDevice const& device)
+    : device_ {device}
+  {
+  }
+
+  bool isNull () const
+  {
+    return device_.isNull ();
+  }
+
+  QString deviceName () const
+  {
+    return device_.description ();
+  }
+
+  QAudioFormat preferredFormat () const
+  {
+    return device_.preferredFormat ();
+  }
+
+  bool isFormatSupported (QAudioFormat const& format) const
+  {
+    return device_.isFormatSupported (format);
+  }
+
+  QAudioFormat nearestFormat (QAudioFormat const& format) const
+  {
+    return isFormatSupported (format) ? format : device_.preferredFormat ();
+  }
+
+  QList<int> supportedChannelCounts () const
+  {
+    QList<int> result;
+    auto min_channels = device_.minimumChannelCount ();
+    auto max_channels = device_.maximumChannelCount ();
+    for (int channel_count = min_channels; channel_count <= max_channels; ++channel_count)
+      {
+        result.push_back (channel_count);
+      }
+    return result;
+  }
+
+  QStringList supportedCodecs () const
+  {
+    return {"audio/pcm"};
+  }
+
+  QAudioDevice const& device () const
+  {
+    return device_;
+  }
+
+  friend bool operator== (QAudioDeviceInfo const& lhs, QAudioDeviceInfo const& rhs)
+  {
+    return lhs.device_ == rhs.device_;
+  }
+
+  friend bool operator!= (QAudioDeviceInfo const& lhs, QAudioDeviceInfo const& rhs)
+  {
+    return !(lhs == rhs);
+  }
+
+  static QList<QAudioDeviceInfo> availableDevices (QAudio::Mode mode)
+  {
+    QList<QAudioDeviceInfo> result;
+    auto devices = QAudio::AudioInput == mode ? QMediaDevices::audioInputs ()
+                                              : QMediaDevices::audioOutputs ();
+    for (auto const& device : devices)
+      {
+        result.push_back (QAudioDeviceInfo {device});
+      }
+    return result;
+  }
+
+  static QAudioDeviceInfo defaultInputDevice ()
+  {
+    return QAudioDeviceInfo {QMediaDevices::defaultAudioInput ()};
+  }
+
+  static QAudioDeviceInfo defaultOutputDevice ()
+  {
+    return QAudioDeviceInfo {QMediaDevices::defaultAudioOutput ()};
+  }
+
+private:
+  QAudioDevice device_;
+};
+
+QT_END_NAMESPACE
+
+Q_DECLARE_METATYPE(QAudioDeviceInfo)

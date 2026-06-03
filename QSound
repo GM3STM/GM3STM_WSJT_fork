@@ -1,0 +1,40 @@
+#pragma once
+
+#include <QtCore/qcoreapplication.h>
+#include <QtCore/qdir.h>
+#include <QtCore/qfileinfo.h>
+#include <QtCore/qurl.h>
+#include <QtMultimedia/qsoundeffect.h>
+
+QT_BEGIN_NAMESPACE
+
+class QSound
+{
+public:
+  static void play (QString const& file_name)
+  {
+    auto * effect = new QSoundEffect {qApp};
+    auto url = QFileInfo {file_name}.isAbsolute ()
+      ? QUrl::fromLocalFile (file_name)
+      : QUrl::fromLocalFile (QFileInfo {QDir::current (), file_name}.absoluteFilePath ());
+    effect->setSource (url);
+    QObject::connect (effect, &QSoundEffect::playingChanged, effect, [effect] {
+        if (!effect->isPlaying () && effect->status () != QSoundEffect::Loading)
+          {
+            effect->deleteLater ();
+          }
+      });
+    QObject::connect (effect, &QSoundEffect::statusChanged, effect, [effect] {
+        if (effect->status () == QSoundEffect::Ready)
+          {
+            effect->play ();
+          }
+        else if (effect->status () == QSoundEffect::Error)
+          {
+            effect->deleteLater ();
+          }
+      });
+  }
+};
+
+QT_END_NAMESPACE
