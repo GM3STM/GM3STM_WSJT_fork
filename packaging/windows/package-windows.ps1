@@ -59,6 +59,57 @@ function Copy-DirectoryIfExists {
   }
 }
 
+function Convert-ToMsysPath {
+  param(
+    [string]$Bash,
+    [string]$Path
+  )
+  $escaped = $Path.Replace("'", "'\''")
+  return (& $Bash -lc "cygpath -u '$escaped'").Trim()
+}
+
+function Copy-MsysRuntimeDependencies {
+  param(
+    [string]$StageDir,
+    [string]$DeployBin,
+    [string]$Bash
+  )
+
+  if (-not (Test-Path -LiteralPath $Bash -PathType Leaf)) {
+    Write-Warning "MSYS bash was not found; skipping recursive runtime dependency scan."
+    return
+  }
+
+  $queue = [System.Collections.Generic.Queue[string]]::new()
+  $scanned = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+  foreach ($file in Get-ChildItem -LiteralPath $StageDir -Recurse -File | Where-Object { $_.Extension -in @(".exe", ".dll") }) {
+    $queue.Enqueue($file.FullName)
+  }
+
+  while ($queue.Count -gt 0) {
+    $file = $queue.Dequeue()
+    if (-not $scanned.Add($file)) {
+      continue
+    }
+
+    $msysFile = Convert-ToMsysPath -Bash $Bash -Path $file
+    $lddOutput = & $Bash -lc "export PATH=/ucrt64/bin:/usr/bin:`$PATH; ldd '$msysFile'" 2>$null
+    foreach ($line in $lddOutput) {
+      $matches = [regex]::Matches($line, "/ucrt64/bin/[^ ()]+\.dll")
+      foreach ($match in $matches) {
+        $dllName = Split-Path -Path $match.Value -Leaf
+        $source = Join-Path $DeployBin $dllName
+        $destination = Join-Path $StageDir $dllName
+        if ((Test-Path -LiteralPath $source -PathType Leaf) -and -not (Test-Path -LiteralPath $destination -PathType Leaf)) {
+          Copy-Item -LiteralPath $source -Destination $destination -Force
+          $queue.Enqueue($destination)
+          Write-Host "Added runtime dependency $dllName"
+        }
+      }
+    }
+  }
+}
+
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SourceDir = (Resolve-Path -LiteralPath (Join-Path $ScriptDir "..\..")).Path
 $WorkspaceDir = (Resolve-Path -LiteralPath (Join-Path $SourceDir "..")).Path
@@ -130,6 +181,10 @@ foreach ($exe in @("wsjtx.exe", "jt9.exe", "jt9code.exe", "qmap.exe")) {
 }
 
 $deployBin = Split-Path -Parent $WinDeployQt
+$bash = Resolve-OptionalPath @(
+  "D:\msys64\usr\bin\bash.exe",
+  "C:\msys64\usr\bin\bash.exe"
+)
 $env:PATH = "$deployBin;$env:PATH"
 Write-Host "Running windeployqt from $WinDeployQt"
 & $WinDeployQt --release --compiler-runtime --dir $StageDir (Join-Path $StageDir "wsjtx.exe")
@@ -144,6 +199,8 @@ Get-ChildItem -LiteralPath $BuildDir -Filter "*.dll" -File |
 foreach ($pluginDir in @("platforms", "imageformats", "multimedia", "networkinformation", "sqldrivers", "styles", "tls", "translations", "generic")) {
   Copy-DirectoryIfExists -Path (Join-Path $BuildDir $pluginDir) -Destination $StageDir
 }
+
+Copy-MsysRuntimeDependencies -StageDir $StageDir -DeployBin $deployBin -Bash $bash
 
 foreach ($asset in @(
   "ALLCALL7.TXT",
