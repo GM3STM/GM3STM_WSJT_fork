@@ -20,7 +20,9 @@ A Beta Qt6 port of WSJT-X, laying the groundwork for a more modern UI. Unofficia
 **FST4** and **FST4W** are designed particularly for the LF and MF bands. On these bands their fundamental sensitivities are better than other *WSJT-X* modes with the same sequence lengths, approaching the theoretical limits for their rates of information throughput. **FST4** is optimized for two-way QSOs, while **FST4W** is for quasi-beacon transmissions of **WSPR**-style messages. **FST4** and **FST4W** do not require the strict, independent time synchronization and phase locking of modes like EbNaut.
 # WSJT-X Qt6 Fork
 
-This project is a beta fork of WSJT-X that has been ported from Qt5 to Qt6 as the foundation for future modernization work. The Qt6 migration is the first major step toward a more modern look and feel in later releases, while keeping the application stable and usable in its current form.
+This project is GM3STM's own beta fork of the original WSJT-X codebase. It is an independent, unofficial fork and is not related to, endorsed by, or part of the official WSJT-X release stream.
+
+This fork has been ported from Qt5 to Qt6 as the foundation for future modernization work. The Qt6 migration is the first major step toward a more modern look and feel in later releases, while keeping the application stable and usable in its current form.
 
 In addition to the framework migration, this fork includes rig-control integration and stability work to support reliable day-to-day testing and ongoing development. The current state of the project should be considered beta software: functional and usable, but still under active refinement as more testing and UI improvements are completed.
 
@@ -47,4 +49,4 @@ The goals of this fork are to:
 
 ## Notes
 
-This project is based on WSJT-X and remains a work in progress. If you use this beta build, expect ongoing changes as development continues.
+This project is based on the original WSJT-X source and remains a work in progress. If you use this beta build, expect ongoing changes as development continues.
