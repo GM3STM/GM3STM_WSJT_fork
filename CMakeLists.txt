@@ -310,6 +310,7 @@ set (wsjtx_CXXSRCS
   Audio/soundin.cpp
   widgets/meterwidget.cpp
   widgets/signalmeter.cpp
+  widgets/CompactSpinBoxStepper.cpp
   widgets/plotter.cpp
   widgets/widegraph.cpp
   widgets/echograph.cpp
@@ -1529,6 +1530,10 @@ function (add_resources resources path)
 endfunction (add_resources resources path)
 
 add_resources (wsjtx_RESOURCES "" ${TOP_LEVEL_RESOURCES})
+add_resources (wsjtx_RESOURCES /themes
+  themes/modern_dark.qss
+  themes/modern_light.qss
+)
 add_resources (wsjtx_RESOURCES /Palettes ${PALETTE_FILES})
 add_resources (wsjtx_RESOURCES /Translations ${QM_FILES})
 

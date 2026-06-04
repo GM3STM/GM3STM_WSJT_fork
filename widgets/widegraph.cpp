@@ -9,6 +9,7 @@
 #include "ui_widegraph.h"
 #include "commons.h"
 #include "Configuration.hpp"
+#include "widgets/CompactSpinBoxStepper.hpp"
 #include "MessageBox.hpp"
 #include "SettingsGroup.hpp"
 #include "moc_widegraph.cpp"
@@ -24,6 +25,7 @@ WideGraph::WideGraph(QSettings * settings, QWidget *parent) :
   m_user_defined {tr ("User Defined")}
 {
   ui->setupUi(this);
+  install_compact_steppers (this);
 
   setWindowTitle (QApplication::applicationName () + " - " + tr ("Wide Graph"));
   setWindowFlags (Qt::WindowCloseButtonHint | Qt::WindowMinimizeButtonHint);

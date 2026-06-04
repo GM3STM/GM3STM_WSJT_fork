@@ -59,6 +59,7 @@
 #include "itoneAndicw.h" // TCI
 
 #include "helper_functions.h"
+#include "widgets/CompactSpinBoxStepper.hpp"
 #include "revision_utils.hpp"
 #include "qt_helpers.hpp"
 #include "Network/NetworkAccessManager.hpp"
@@ -111,6 +112,109 @@
 #include "widgets/QSYMessageCreator.h"
 #include "widgets/qsymonitor.h"
 #include "Network/eqsl.h"
+
+namespace
+{
+  QString style_sheet_with_font (QString const& resource_path, QFont const& font)
+  {
+    QFile file {resource_path};
+    if (!file.exists ())
+      {
+        qDebug () << "Unable to set stylesheet, file not found:" << resource_path;
+        return "* {" + font_as_stylesheet (font) + '}';
+      }
+
+    if (!file.open (QFile::ReadOnly | QFile::Text))
+      {
+        qDebug () << "Unable to open stylesheet:" << resource_path;
+        return "* {" + font_as_stylesheet (font) + '}';
+      }
+
+    QTextStream stream {&file};
+    return stream.readAll () + "* {" + font_as_stylesheet (font) + '}';
+  }
+
+  void apply_app_theme (bool dark, QFont const& font)
+  {
+    qApp->setFont (font);
+    qApp->setStyleSheet (style_sheet_with_font (dark ? ":/themes/modern_dark.qss"
+                                                     : ":/themes/modern_light.qss",
+                                                font));
+  }
+
+  void assign_theme_roles (Ui::MainWindow * ui)
+  {
+    ui->DecodeButton->setProperty ("role", "primary");
+    ui->readFreq->setProperty ("role", "primary");
+    ui->monitorButton->setProperty ("role", "monitor");
+    ui->autoButton->setProperty ("role", "tx");
+    ui->tuneButton->setProperty ("role", "tx");
+    ui->stopTxButton->setProperty ("role", "danger");
+    ui->pbR2T->setProperty ("role", "arrow");
+    ui->pbT2R->setProperty ("role", "arrow");
+    ui->labDialFreq->setProperty ("panel", "frequency");
+    ui->labUTC->setProperty ("panel", "clock");
+    ui->decodedTextBrowser->setProperty ("surface", "decodes");
+    ui->decodedTextBrowser2->setProperty ("surface", "decodes");
+    ui->DX_controls_widget->setProperty ("surface", "panel");
+    ui->QSO_controls_widget->setProperty ("surface", "panel");
+    ui->controls_stack_widget->setProperty ("surface", "panel");
+    ui->tabWidget->setProperty ("workspace", "true");
+
+    // Let the stylesheet own the visual treatment of the main instrument labels.
+    ui->labDialFreq->setStyleSheet ({});
+    ui->labUTC->setStyleSheet ({});
+    ui->pbR2T->setText (QString::fromUtf8 ("\u25B2"));
+    ui->pbT2R->setText (QString::fromUtf8 ("\u25BC"));
+    install_compact_stepper (ui->TxFreqSpinBox);
+    install_compact_stepper (ui->RxFreqSpinBox);
+    install_compact_stepper (ui->rptSpinBox);
+    install_slider_tick_markers (ui->outAttenuation);
+    ui->TxFreqSpinBox->setMaximumWidth (116);
+    ui->RxFreqSpinBox->setMaximumWidth (116);
+    ui->rptSpinBox->setMaximumWidth (116);
+
+    auto mark_mode = [] (QPushButton * button) {
+      if (button) button->setProperty ("mode", "true");
+    };
+
+    mark_mode (ui->houndButton);
+    mark_mode (ui->ft8Button);
+    mark_mode (ui->ft4Button);
+    mark_mode (ui->msk144Button);
+    mark_mode (ui->q65Button);
+    mark_mode (ui->jt65Button);
+    mark_mode (ui->echoButton);
+
+    auto mark_band = [] (QPushButton * button) {
+      if (button) button->setProperty ("band", "true");
+    };
+
+    mark_band (ui->pb160);
+    mark_band (ui->pb80);
+    mark_band (ui->pb60);
+    mark_band (ui->pb40);
+    mark_band (ui->pb30);
+    mark_band (ui->pb20);
+    mark_band (ui->pb17);
+    mark_band (ui->pb15);
+    mark_band (ui->pb12);
+    mark_band (ui->pb10);
+    mark_band (ui->pb6);
+    mark_band (ui->pb2);
+    mark_band (ui->pb70);
+    mark_band (ui->pb220);
+    mark_band (ui->pb23);
+    mark_band (ui->pb10G);
+    mark_band (ui->pb24G);
+    mark_band (ui->pb15A);
+    mark_band (ui->pb15C);
+    mark_band (ui->pb30B);
+    mark_band (ui->pb60C);
+    mark_band (ui->pb60D);
+    mark_band (ui->pb60E);
+  }
+}
 
 #define FCL fortran_charlen_t
 
@@ -573,6 +677,7 @@ MainWindow::MainWindow(QDir const& temp_directory, bool multiple,
   m_useDarkStyle {false}
 {
   ui->setupUi(this);
+  assign_theme_roles (ui.get ());
   setUnifiedTitleAndToolBarOnMac (true);
   createStatusBar();
   add_child_to_event_filter (this);
@@ -857,7 +962,7 @@ MainWindow::MainWindow(QDir const& temp_directory, bool multiple,
       setDecodedTextFont (font);
     });
 
-  setWindowTitle (program_title ());
+  setWindowTitle (QStringLiteral ("GM3STM WSJT Fork 0.1.0 beta"));
 
   connect(&proc_jt9, &QProcess::readyReadStandardOutput, this, &MainWindow::readFromStdout);
 #if QT_VERSION < QT_VERSION_CHECK (5, 6, 0)
@@ -2055,41 +2160,17 @@ void MainWindow::set_application_font (QFont const& font)
 {
   // check if dark style is enabled, this check is also effective during the program start
   if (ui->actionUse_Dark_Style->isChecked()) {
-      QFile f(":qdarkstyle/style.qss");
-      if (!f.exists())   {
-          printf("Unable to set stylesheet, file not found\n");
-      } else {
-          qApp->setFont (font);
-          QString ss;
-          (void) f.open(QFile::ReadOnly | QFile::Text);
-          QTextStream ts(&f);
-          qApp->setStyleSheet(ts.readAll() + "* {" + font_as_stylesheet (font) + '}');
-          m_useDarkStyle = true;
-          m_wideGraph->setDarkStyle(m_useDarkStyle);
-          check_button_color();
-          ui->tabWidget->setTabShape(QTabWidget::Rounded);
-      }
+      apply_app_theme (true, font);
+      m_useDarkStyle = true;
+      m_wideGraph->setDarkStyle(m_useDarkStyle);
+      check_button_color();
+      ui->tabWidget->setTabShape(QTabWidget::Rounded);
    } else {
       m_useDarkStyle = false;
       m_wideGraph->setDarkStyle(m_useDarkStyle);
       check_button_color();
-      ui->tabWidget->setTabShape(QTabWidget::Triangular);
-      qApp->setFont (font);
-      // set font in the application style sheet as well in case it has
-      // been modified in the style sheet which has priority
-      QString ss;
-      if (qApp->styleSheet ().size ()) {
-         auto sheet = qApp->styleSheet ();
-         sheet.remove ("file:///");
-         QFile sf {sheet};
-         if (sf.open (QFile::ReadOnly | QFile::Text))
-           {
-             QString tmp = sf.readAll();
-             if (!tmp.isNull ()) ss = sf.readAll () + tmp;
-             else qDebug() << "tmp==NULL at sf.readAll";
-           }
-      }
-      qApp->setStyleSheet (ss + "* {" + font_as_stylesheet (font) + '}');
+      ui->tabWidget->setTabShape(QTabWidget::Rounded);
+      apply_app_theme (false, font);
   }
 
   // ensure a balanced layout
@@ -16127,34 +16208,17 @@ void MainWindow::on_actionUse_Dark_Style_triggered (bool checked)
     qApp->styleHints ()->setColorScheme (checked ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
 #endif
     if (checked) {
-        QFile f(":qdarkstyle/style.qss");
-        if (!f.exists())   {
-            printf("Unable to set stylesheet, file not found\n");
-        } else {
-            qApp->setFont (font);
-            QString ss;
-            (void) f.open(QFile::ReadOnly | QFile::Text);
-            QTextStream ts(&f);
-            qApp->setStyleSheet(ts.readAll() + "* {" + font_as_stylesheet (font) + '}');
-            m_useDarkStyle = true;
-            m_wideGraph->setDarkStyle(m_useDarkStyle);
-            check_button_color();
-            ui->tabWidget->setTabShape(QTabWidget::Rounded);
-        }
+        apply_app_theme (true, font);
+        m_useDarkStyle = true;
+        m_wideGraph->setDarkStyle(m_useDarkStyle);
+        check_button_color();
+        ui->tabWidget->setTabShape(QTabWidget::Rounded);
     } else {
         m_useDarkStyle = false;
         m_wideGraph->setDarkStyle(m_useDarkStyle);
         check_button_color();
-        ui->tabWidget->setTabShape(QTabWidget::Triangular);
-        qApp->setFont (font);
-        QString ss;
-        if (qApp->styleSheet ().size ()) {
-           auto sheet = qApp->styleSheet ();
-           sheet.remove ("file:///");
-           QFile sf {sheet};
-           if (sf.open (QFile::ReadOnly | QFile::Text)) ss = sf.readAll () + ss;
-        }
-        qApp->setStyleSheet (ss + "* {" + font_as_stylesheet (font) + '}');
+        ui->tabWidget->setTabShape(QTabWidget::Rounded);
+        apply_app_theme (false, font);
     }
     // ensure a balanced layout
     qreal pointSize = m_config.text_font().pointSizeF();

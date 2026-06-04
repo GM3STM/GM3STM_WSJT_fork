@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 #include <QAudio>
 #include <QAudioOutput>
@@ -19,6 +20,7 @@
 #include <QListIterator>
 #include <QRegularExpression>
 #include <QScrollBar>
+#include <QPalette>
 
 #include "Configuration.hpp"
 #include "Decoder/decodedtext.h"
@@ -144,6 +146,47 @@ namespace
       }
     return result;            // highest priority enabled highlighting
   }
+
+  qreal linear_channel (qreal channel)
+  {
+    return channel <= 0.03928 ? channel / 12.92 : std::pow ((channel + 0.055) / 1.055, 2.4);
+  }
+
+  qreal relative_luminance (QColor colour)
+  {
+    colour = colour.toRgb ();
+    return 0.2126 * linear_channel (colour.redF ())
+      + 0.7152 * linear_channel (colour.greenF ())
+      + 0.0722 * linear_channel (colour.blueF ());
+  }
+
+  qreal contrast_ratio (QColor const& foreground, QColor const& background)
+  {
+    auto const lighter = std::max (relative_luminance (foreground), relative_luminance (background));
+    auto const darker = std::min (relative_luminance (foreground), relative_luminance (background));
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  bool using_dark_decode_surface (QWidget const * widget)
+  {
+    return widget && widget->palette ().color (QPalette::Base).lightness () < 128;
+  }
+
+  QColor readable_highlight_foreground (QWidget const * widget, QColor const& bg, QColor const& fg)
+  {
+    if (!using_dark_decode_surface (widget) || !bg.isValid ())
+      {
+        return fg;
+      }
+
+    QColor const dark_text {"#1c242b"};
+    QColor const light_text {"#d7dee5"};
+    if (!fg.isValid () || fg.lightness () > 170)
+      {
+        return contrast_ratio (dark_text, bg) >= contrast_ratio (light_text, bg) ? dark_text : light_text;
+      }
+    return fg;
+  }
 }
 
 void DisplayText::insertText(QString const& text, QColor bg, QColor fg
@@ -160,9 +203,10 @@ void DisplayText::insertText(QString const& text, QColor bg, QColor fg
       block_format.setBackground (bg);
     }
   format.clearForeground ();
-  if (fg.isValid ())
+  auto const readable_fg = readable_highlight_foreground (this, bg, fg);
+  if (readable_fg.isValid ())
     {
-      format.setForeground (fg);
+      format.setForeground (readable_fg);
     }
   if (cursor.position ())
     {
@@ -191,7 +235,7 @@ void DisplayText::insertText(QString const& text, QColor bg, QColor fg
                 }
               if (pos.value ().second.isValid ())
                 {
-                  temp_format.setForeground (pos.value ().second);
+                  temp_format.setForeground (readable_highlight_foreground (this, pos.value ().first, pos.value ().second));
                 }
               cursor.insertText(text.mid (call_index, call1.size ()), temp_format);
               text_index = call_index + call1.size ();
@@ -208,13 +252,13 @@ void DisplayText::insertText(QString const& text, QColor bg, QColor fg
             {
               temp_format = format;
               cursor.insertText(text.mid (text_index, call_index - text_index), format);
-              if (pos.value ().second.isValid ())
+              if (pos.value ().first.isValid ())
                 {
                   temp_format.setBackground (pos.value ().first);
                 }
               if (pos.value ().second.isValid ())
                 {
-                  temp_format.setForeground (pos.value ().second);
+                  temp_format.setForeground (readable_highlight_foreground (this, pos.value ().first, pos.value ().second));
                 }
               cursor.insertText(text.mid (call_index, call2.size ()), temp_format);
               text_index = call_index + call2.size ();
@@ -822,6 +866,7 @@ namespace
 void DisplayText::highlight_callsign (QString const& callsign, QColor const& bg,
                                       QColor const& fg, bool last_period_only)
 {
+  auto const readable_fg = readable_highlight_foreground (this, bg, fg);
   auto regexp = callsign;
   if (!callsign.size () || callsign == "" || callsign == " " || callsign == "0")
     {
@@ -861,7 +906,7 @@ void DisplayText::highlight_callsign (QString const& callsign, QColor const& bg,
             {
               if (bg.isValid () || fg.isValid ())
                 {
-                  update_selection (cursor, bg, fg);
+                  update_selection (cursor, bg, readable_fg);
                 }
               else
                 {
@@ -875,7 +920,7 @@ void DisplayText::highlight_callsign (QString const& callsign, QColor const& bg,
       auto pos = highlighted_calls_.find (callsign);
       if (bg.isValid () || fg.isValid ())
         {
-          auto colours = qMakePair (bg, fg);
+          auto colours = qMakePair (bg, readable_fg);
           if (pos == highlighted_calls_.end ())
             {
               pos = highlighted_calls_.insert (callsign.toUpper (), colours);
@@ -889,7 +934,7 @@ void DisplayText::highlight_callsign (QString const& callsign, QColor const& bg,
               cursor = document ()->find (target, cursor, QTextDocument::FindWholeWords);
               if (!cursor.isNull () && cursor.hasSelection ())
                 {
-                  update_selection (cursor, bg, fg);
+                  update_selection (cursor, bg, readable_fg);
                 }
             }
         }

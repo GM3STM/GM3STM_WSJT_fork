@@ -55,8 +55,10 @@ void MeterWidget::paintEvent (QPaintEvent * event)
   p.setPen (Qt::NoPen);
 
   auto const& target = contentsRect ();
-  QRect r {QPoint {target.left (), static_cast<int> (target.top () + target.height () - m_signal / (double)MAXDB * target.height ())}
-    , QPoint {target.right (), target.bottom ()}};
+  p.fillRect (target, palette ().window ());
+
+  int const bar_top = static_cast<int> (target.top () + target.height () - m_signal / (double)MAXDB * target.height ());
+  QRect r {target.left (), bar_top, target.width (), target.bottom () - bar_top + 1};
   p.setBrush (QColor(85,170,85));
   if (m_sigPeak > 85) {
       p.setBrush(Qt::red);

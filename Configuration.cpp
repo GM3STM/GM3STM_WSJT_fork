@@ -187,6 +187,7 @@
 #include "SettingsGroup.hpp"
 #include "widgets/FrequencyLineEdit.hpp"
 #include "widgets/FrequencyDeltaLineEdit.hpp"
+#include "widgets/CompactSpinBoxStepper.hpp"
 #include "item_delegates/CandidateKeyFilter.hpp"
 #include "item_delegates/ForeignKeyDelegate.hpp"
 #include "item_delegates/FrequencyDelegate.hpp"
@@ -1812,6 +1813,7 @@ Configuration::impl::impl (Configuration * self, QNetworkAccessManager * network
   , default_audio_output_device_selected_ {false}
 {
   ui_->setupUi (this);
+  install_compact_steppers (this);
 
   {
     // Make sure the default save directory exists
@@ -2128,6 +2130,7 @@ void Configuration::impl::initialize_models ()
     {
       pal.setColor (QPalette::Base, Qt::white);
     }
+  pal.setColor (QPalette::Text, QColor {"#1c242b"});
   ui_->callsign_line_edit->setPalette (pal);
   ui_->grid_line_edit->setPalette (pal);
   ui_->callsign_line_edit->setText (my_callsign_);
