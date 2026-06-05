@@ -11,11 +11,11 @@
 #endif
 
 #ifndef AppVersion
-  #define AppVersion "0.1.0 beta"
+  #define AppVersion "0.1.1 beta"
 #endif
 
 #ifndef PackageVersion
-  #define PackageVersion "0.1.0-beta"
+  #define PackageVersion "0.1.1-beta"
 #endif
 
 #define StagePath AddBackslash(StageDir)
@@ -41,11 +41,11 @@ CloseApplications=yes
 RestartApplications=no
 SetupIconFile={#StagePath}wsjt.ico
 UninstallDisplayIcon={app}\wsjtx.exe
-VersionInfoVersion=0.1.0.0
+VersionInfoVersion=0.1.1.0
 VersionInfoCompany={#AppPublisher}
 VersionInfoDescription={#AppName} installer
 VersionInfoProductName={#AppName}
-VersionInfoProductVersion=0.1.0.0
+VersionInfoProductVersion=0.1.1.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

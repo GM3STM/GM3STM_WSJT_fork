@@ -2101,7 +2101,6 @@ Configuration::impl::impl (Configuration * self, QNetworkAccessManager * network
 
 Configuration::impl::~impl ()
 {
-  close_rig ();
   transceiver_thread_->quit ();
   transceiver_thread_->wait ();
   write_settings ();
@@ -5075,8 +5074,7 @@ bool Configuration::impl::open_rig (bool force)
 
           // setup thread safe startup and close down semantics
           rig_connections_ << connect (this, &Configuration::impl::start_transceiver, rig.get (), &Transceiver::start);
-          rig_connections_ << connect (this, &Configuration::impl::stop_transceiver, rig.get (), &Transceiver::stop,
-                                       Qt::QueuedConnection);
+          rig_connections_ << connect (this, &Configuration::impl::stop_transceiver, rig.get (), &Transceiver::stop);
 
           auto p = rig.release ();	// take ownership
 

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
-  [string]$Version = "0.1.0 beta",
-  [string]$PackageVersion = "0.1.0-beta",
+  [string]$Version = "0.1.1 beta",
+  [string]$PackageVersion = "0.1.1-beta",
   [string]$BuildDir,
   [string]$DistRoot,
   [string]$WinDeployQt,
@@ -198,6 +198,11 @@ Get-ChildItem -LiteralPath $BuildDir -Filter "*.dll" -File |
 
 foreach ($pluginDir in @("platforms", "imageformats", "multimedia", "networkinformation", "sqldrivers", "styles", "tls", "translations", "generic")) {
   Copy-DirectoryIfExists -Path (Join-Path $BuildDir $pluginDir) -Destination $StageDir
+}
+
+$sqlDrivers = Join-Path $StageDir "sqldrivers"
+foreach ($plugin in @("qsqlibase.dll", "qsqlmysql.dll", "qsqlodbc.dll", "qsqlpsql.dll")) {
+  Remove-Item -LiteralPath (Join-Path $sqlDrivers $plugin) -Force -ErrorAction SilentlyContinue
 }
 
 Copy-MsysRuntimeDependencies -StageDir $StageDir -DeployBin $deployBin -Bash $bash

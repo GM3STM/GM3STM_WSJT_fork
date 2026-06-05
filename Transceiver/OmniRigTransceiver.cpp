@@ -53,6 +53,16 @@ namespace
   {
     return object->dynamicCall (method).toLongLong ();
   }
+
+  void ax_set_int (QAxObject * object, char const * property, int value)
+  {
+    object->setProperty (property, value);
+  }
+
+  void ax_set_bool (QAxObject * object, char const * property, bool value)
+  {
+    object->setProperty (property, value);
+  }
 }
 
 auto OmniRigTransceiver::map_mode (OmniRig::RigParamX param) -> MODE
@@ -223,10 +233,10 @@ int OmniRigTransceiver::do_start ()
       offline_timer_->setSingleShot (true);
       connect (offline_timer_.data (), &QTimer::timeout, [this] () {offline ("Rig went offline");});
 
-      // On Qt 6/ActiveQt, querying Rig.Status during a rapid OmniRig
-      // reacquire can wedge this client even while the shared OmniRig server
-      // remains responsive. Let the COM event pump settle, then proceed from
-      // rig type/capability properties instead.
+      // On Qt 6/ActiveQt, querying Rig.Status during startup can wedge
+      // this client while the shared OmniRig server remains responsive.
+      // Let the COM event pump settle, then proceed from rig
+      // type/capability properties instead.
       wait_for_omnirig ([] {return false;}, 3000);
 
       if (use_for_ptt_ && (TransceiverFactory::PTT_method_DTR == ptt_type_ || TransceiverFactory::PTT_method_RTS == ptt_type_))
@@ -253,11 +263,11 @@ int OmniRigTransceiver::do_start ()
           // start off so we don't accidentally key the radio
           if (TransceiverFactory::PTT_method_DTR == ptt_type_)
             {
-              port_->dynamicCall ("SetDtr(bool)", false);
+              ax_set_bool (port_.data (), "Dtr", false);
             }
           else      // RTS
             {
-              port_->dynamicCall ("SetRts(bool)", false);
+              ax_set_bool (port_.data (), "Rts", false);
             }
         }
 
@@ -279,7 +289,7 @@ int OmniRigTransceiver::do_start ()
         {
           // start with VFO A (probably MAIN) on rigs that we
           // can't query VFO but can set explicitly
-          rig_->dynamicCall ("SetVfo(int)", static_cast<int> (OmniRig::PM_VFOA));
+          ax_set_int (rig_.data (), "Vfo", static_cast<int> (OmniRig::PM_VFOA));
         }
       auto f = state ().frequency ();
 
@@ -339,15 +349,15 @@ int OmniRigTransceiver::do_start ()
 
       if (OmniRig::PM_FREQ & writable_params_)
         {
-          rig_->dynamicCall ("SetFreq(int)", static_cast<int> (f));
+          ax_set_int (rig_.data (), "Freq", static_cast<int> (f));
         }
       else if (reversed_ && (OmniRig::PM_FREQB & writable_params_))
         {
-          rig_->dynamicCall ("SetFreqB(int)", static_cast<int> (f));
+          ax_set_int (rig_.data (), "FreqB", static_cast<int> (f));
         }
       else if (!reversed_ && (OmniRig::PM_FREQA & writable_params_))
         {
-          rig_->dynamicCall ("SetFreqA(int)", static_cast<int> (f));
+          ax_set_int (rig_.data (), "FreqA", static_cast<int> (f));
         }
       update_rx_frequency (f);
       CAT_TRACE ("started");
@@ -747,7 +757,7 @@ void OmniRigTransceiver::do_ptt (bool on)
       CAT_TRACE ("set PTT");
       if (rig_)
         {
-          rig_->dynamicCall ("SetTx(int)", static_cast<int> (on ? OmniRig::PM_TX : OmniRig::PM_RX));
+          ax_set_int (rig_.data (), "Tx", static_cast<int> (on ? OmniRig::PM_TX : OmniRig::PM_RX));
         }
     }
   else
@@ -757,12 +767,12 @@ void OmniRigTransceiver::do_ptt (bool on)
           if (TransceiverFactory::PTT_method_RTS == ptt_type_)
             {
               CAT_TRACE ("set RTS");
-              port_->dynamicCall ("SetRts(bool)", on);
+              ax_set_bool (port_.data (), "Rts", on);
             }
           else      // "DTR"
             {
               CAT_TRACE ("set DTR");
-              port_->dynamicCall ("SetDtr(bool)", on);
+              ax_set_bool (port_.data (), "Dtr", on);
             }
         }
       else if (wrapped_)
@@ -792,17 +802,17 @@ void OmniRigTransceiver::do_frequency (Frequency f, MODE m, bool /*no_ignore*/)
     }
   if (OmniRig::PM_FREQ & writable_params_)
     {
-      rig_->dynamicCall ("SetFreq(int)", static_cast<int> (f));
+      ax_set_int (rig_.data (), "Freq", static_cast<int> (f));
       update_rx_frequency (f);
     }
   else if (reversed_ && (OmniRig::PM_FREQB & writable_params_))
     {
-      rig_->dynamicCall ("SetFreqB(int)", static_cast<int> (f));
+      ax_set_int (rig_.data (), "FreqB", static_cast<int> (f));
       update_rx_frequency (f);
     }
   else if (!reversed_ && (OmniRig::PM_FREQA & writable_params_))
     {
-      rig_->dynamicCall ("SetFreqA(int)", static_cast<int> (f));
+      ax_set_int (rig_.data (), "FreqA", static_cast<int> (f));
       update_rx_frequency (f);
     }
   else
@@ -831,15 +841,15 @@ void OmniRigTransceiver::do_tx_frequency (Frequency tx, MODE m, bool /*no_ignore
               else if ((writable_params_ & (OmniRig::PM_VFOA | OmniRig::PM_VFOB))
                    == (OmniRig::PM_VFOA | OmniRig::PM_VFOB))
                 {
-                  rig_->dynamicCall ("SetVfo(int)", static_cast<int> (OmniRig::PM_VFOB));
+                  ax_set_int (rig_.data (), "Vfo", static_cast<int> (OmniRig::PM_VFOB));
                   do_mode (m);
-                  rig_->dynamicCall ("SetVfo(int)", static_cast<int> (OmniRig::PM_VFOA));
+                  ax_set_int (rig_.data (), "Vfo", static_cast<int> (OmniRig::PM_VFOA));
                 }
               else if (writable_params_ & OmniRig::PM_VFOSWAP)
                 {
-                  rig_->dynamicCall ("SetVfo(int)", static_cast<int> (OmniRig::PM_VFOSWAP));
+                  ax_set_int (rig_.data (), "Vfo", static_cast<int> (OmniRig::PM_VFOSWAP));
                   do_mode (m);
-                  rig_->dynamicCall ("SetVfo(int)", static_cast<int> (OmniRig::PM_VFOSWAP));
+                  ax_set_int (rig_.data (), "Vfo", static_cast<int> (OmniRig::PM_VFOSWAP));
                 }
             }
         }
@@ -884,7 +894,7 @@ void OmniRigTransceiver::do_mode (MODE mode)
   auto mapped = map_mode (mode);
   if (mapped & writable_params_)
     {
-      rig_->dynamicCall ("SetMode(int)", static_cast<int> (mapped));
+      ax_set_int (rig_.data (), "Mode", static_cast<int> (mapped));
       update_mode (mode);
     }
   else
